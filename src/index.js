@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 const getToken = require('./utils/tokenGenerator');
+const validateEmail = require('./middlewares/validateEmail');
+const validatePassword = require('./middlewares/validatePassword');
 
 const app = express();
 app.use(express.json());
@@ -26,16 +28,6 @@ async function readTalkers() {
     return JSON.parse(talkers);
   } catch (error) {
     console.error(`Arquivo não pôde ser lido: ${error}`);
-  }
-}
-
-async function getTalkerById(id) {
-  try {
-    const talkers = await fs.readFile(talkerPath);
-    const parsedTalkers = JSON.parse(talkers);
-    return parsedTalkers.find((talker) => talker.id === id);
-  } catch (err) {
-    res.status(400).send({ message: 'Pessoa palestrante não encontrada' });
   }
 }
 
@@ -64,9 +56,8 @@ app.get('/talker/:id', async (req, res) => {
   }
 });
 
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
+app.post('/login', validateEmail, validatePassword, async (req, res) => {
   const token = getToken();
   res.status(200).json({ token });
 });
+
