@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
+const getToken = require('./utils/tokenGenerator');
 
 const app = express();
 app.use(express.json());
@@ -24,7 +25,6 @@ async function readTalkers() {
     const talkers = await fs.readFile(talkerPath);
     return JSON.parse(talkers);
   } catch (error) {
-    // res.status(200).json([]);
     console.error(`Arquivo não pôde ser lido: ${error}`);
   }
 }
@@ -62,4 +62,11 @@ app.get('/talker/:id', async (req, res) => {
   } catch (err) {
     res.status(404).send({ message: 'Pessoa palestrante não encontrada' });
   }
+});
+
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  const token = getToken();
+  res.status(200).json({ token });
 });
