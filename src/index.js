@@ -4,6 +4,12 @@ const path = require('path');
 const getToken = require('./utils/tokenGenerator');
 const validateEmail = require('./middlewares/validateEmail');
 const validatePassword = require('./middlewares/validatePassword');
+const validationCredential = require('./middlewares/validationCredentials');
+const validationAge = require('./middlewares/validationAge');
+const validationName = require('./middlewares/validationName');
+const validationTalk = require('./middlewares/validationTalk');
+const validationWatchedAt = require('./middlewares/validationWatchedAt');
+const validatationRate = require('./middlewares/validationRate');
 
 const app = express();
 app.use(express.json());
@@ -31,6 +37,14 @@ async function readTalkers() {
   }
 }
 
+// async function addTalker() {
+//   const talkerToAdd = req.body;
+//   const talkers = await fs.readFile(talkerPath);
+//   const parsedTalkers = JSON.parse(talkers);
+
+//   await fs.writeFile(talkerPath, JSON.stringify(talkerToAdd));
+// }
+
 app.get('/talker', async (req, res) => {
   try {
     const talkers = await readTalkers();
@@ -50,7 +64,6 @@ app.get('/talker/:id', async (req, res) => {
       res.status(404).send({ message: 'Pessoa palestrante não encontrada' });
     }
     return res.status(200).json(talkerById);
-
   } catch (err) {
     res.status(404).send({ message: 'Pessoa palestrante não encontrada' });
   }
@@ -61,3 +74,32 @@ app.post('/login', validateEmail, validatePassword, async (req, res) => {
   res.status(200).json({ token });
 });
 
+async function addTalker(name, age, talk) {
+  const { watchedAt, rate } = talk;
+  const talkers = await readTalkers();
+  const newObject = {
+    id: talkers.length + 1,
+    name,
+    age,
+    talk: {
+      watchedAt,
+      rate,
+    },
+  };
+  const addNewTalker = JSON.stringify([...talkers, newObject]);
+  return { addNewTalker, newObject };
+}
+
+app.post('/talker',
+  validationCredential,
+  validationAge,
+  validationName,
+  validationTalk,
+  validationWatchedAt,
+  validatationRate,
+  async (req, res) => {
+    const { name, age, talk } = req.body;
+    const { addNewTalker, newObject } = await addTalker(name, age, talk);
+    fs.writeFile(talkerPath, addNewTalker);
+    return res.status(201).json(newObject);
+  });
