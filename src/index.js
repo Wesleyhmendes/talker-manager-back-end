@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 const getToken = require('./utils/tokenGenerator');
+const readTalkers = require('./utils/readTalkers');
 const validateEmail = require('./middlewares/validateEmail');
 const validatePassword = require('./middlewares/validatePassword');
 const validationCredential = require('./middlewares/validationCredentials');
@@ -10,6 +11,10 @@ const validationName = require('./middlewares/validationName');
 const validationTalk = require('./middlewares/validationTalk');
 const validationWatchedAt = require('./middlewares/validationWatchedAt');
 const validatationRate = require('./middlewares/validationRate');
+const validateQquery = require('./middlewares/validateQquery');
+const validateRateFormat = require('./middlewares/validateRateFormat');
+const validateRate = require('./middlewares/validateRate');
+const validateQandRate = require('./middlewares/validateQandRate');
 
 const app = express();
 app.use(express.json());
@@ -28,15 +33,6 @@ app.listen(PORT, () => {
 
 const talkerPath = path.resolve(__dirname, './talker.json');
 
-async function readTalkers() {
-  try {
-    const talkers = await fs.readFile(talkerPath);
-    return JSON.parse(talkers);
-  } catch (error) {
-    console.error(`Arquivo não pôde ser lido: ${error}`);
-  }
-}
-
 app.get('/talker', async (req, res) => {
   try {
     const talkers = await readTalkers();
@@ -46,21 +42,24 @@ app.get('/talker', async (req, res) => {
   }
 });
 
-app.get('/talker/search', validationCredential, async (req, res) => {
-  const { q } = req.query;
-  const talkers = await readTalkers();
+app.get('/talker/search',
+  validationCredential,
+  validateQandRate,
+  validateQquery,
+  validateRateFormat,
+  validateRate,
+  async (req, res) => {
+    const { q, rate } = req.query;
+    const talkers = await readTalkers();
 
-  if (q) {
-    const filteredTalkers = talkers.filter((talker) => talker.name.includes(q));
-    if (filteredTalkers) {
-      return res.status(200).json(filteredTalkers);
+    if (q && rate) {
+      const filterByRate = talkers.filter((talker) => talker.talk.rate === Number(rate));
+      const filterByQ = filterByRate.filter((talker) => talker.name.includes(q));
+      if (filterByQ.length > 0) {
+        res.status(200).json(filterByQ);
+      }
     }
-    return res.status(200).json([]);
-  }
-  if (!q) {
-    return res.status(200).json(talkers);
-  }
-});
+  });
 
 app.get('/talker/:id', async (req, res) => {
   try {
