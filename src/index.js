@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
@@ -102,4 +103,33 @@ app.post('/talker',
     const { addNewTalker, newObject } = await addTalker(name, age, talk);
     fs.writeFile(talkerPath, addNewTalker);
     return res.status(201).json(newObject);
+  });
+
+app.put('/talker/:id',
+  validationCredential,
+  validationAge,
+  validationName,
+  validationTalk,
+  validationWatchedAt,
+  validatationRate,
+  async (req, res) => {
+    const { name, age, talk } = req.body;
+    const { id } = req.params;
+    const { watchedAt, rate } = talk;
+
+    const talkers = await readTalkers();
+    const updateTalker = talkers.find((talker) => talker.id === Number(id));
+
+    if (!updateTalker) {
+      return res.status(404).json({ message: 'Pessoa palestrante não encontrada' });
+    }
+    updateTalker.name = name;
+    updateTalker.age = age;
+    updateTalker.talk.watchedAt = watchedAt;
+    updateTalker.talk.rate = rate;
+
+    const editNewTalker = JSON.stringify([...talkers, updateTalker]);
+    await fs.writeFile(talkerPath, editNewTalker);
+
+    return res.status(200).json(updateTalker);
   });
