@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function */
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
@@ -38,20 +37,28 @@ async function readTalkers() {
   }
 }
 
-// async function addTalker() {
-//   const talkerToAdd = req.body;
-//   const talkers = await fs.readFile(talkerPath);
-//   const parsedTalkers = JSON.parse(talkers);
-
-//   await fs.writeFile(talkerPath, JSON.stringify(talkerToAdd));
-// }
-
 app.get('/talker', async (req, res) => {
   try {
     const talkers = await readTalkers();
     res.status(200).json(talkers);
   } catch (err) {
     res.status(200).json([]);
+  }
+});
+
+app.get('/talker/search', validationCredential, async (req, res) => {
+  const { q } = req.query;
+  const talkers = await readTalkers();
+
+  if (q) {
+    const filteredTalkers = talkers.filter((talker) => talker.name.includes(q));
+    if (filteredTalkers) {
+      return res.status(200).json(filteredTalkers);
+    }
+    return res.status(200).json([]);
+  }
+  if (!q) {
+    return res.status(200).json(talkers);
   }
 });
 
@@ -130,7 +137,6 @@ app.put('/talker/:id',
 
     const editNewTalker = JSON.stringify([...talkers, updateTalker]);
     await fs.writeFile(talkerPath, editNewTalker);
-
     return res.status(200).json(updateTalker);
   });
 
