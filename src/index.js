@@ -133,3 +133,15 @@ app.put('/talker/:id',
 
     return res.status(200).json(updateTalker);
   });
+
+app.delete('/talker/:id', validationCredential, async (req, res) => {
+  const { id } = req.params;
+
+  const talkers = await readTalkers();
+
+  const updatedTalkers = talkers.filter((talker) => talker.id !== Number(id));
+
+  await fs.writeFile(talkerPath, JSON.stringify(updatedTalkers, null, 2));
+
+  res.status(204).end();
+});
