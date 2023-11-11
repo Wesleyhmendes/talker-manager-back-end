@@ -20,6 +20,8 @@ const validateQRD = require('./middlewares/validateQRD');
 const validateQandRate = require('./middlewares/validateQandRate');
 const validateQandDate = require('./middlewares/validateQandDate');
 const validateRateAndDate = require('./middlewares/validateRateAndDate');
+const validateRateBodyFormat = require('./middlewares/validateRateBodyFormat');
+const validateRateBodyExist = require('./middlewares/validateRateBodyExist');
 
 const app = express();
 app.use(express.json());
@@ -161,3 +163,24 @@ app.delete('/talker/:id', validationCredential, async (req, res) => {
 
   res.status(204).end();
 });
+
+app.patch('/talker/rate/:id',
+  validationCredential,
+  validateRateBodyExist,
+  validateRateBodyFormat,
+  async (req, res) => {
+    const { id } = req.params;
+    const { rate } = req.body;
+    const talkers = await readTalkers();
+
+    const oldTalkers = talkers.filter((talker) => talker.id !== Number(id));
+    const updateTalker = talkers.find((talker) => talker.id === Number(id));
+    updateTalker.talk.rate = rate;
+    
+    if (oldTalkers && updateTalker) {
+      const insertNewTalker = JSON.stringify([...oldTalkers, updateTalker]);
+      await fs.writeFile(talkerPath, insertNewTalker);
+    }
+
+    return res.status(204).end();
+  });
