@@ -14,7 +14,12 @@ const validatationRate = require('./middlewares/validationRate');
 const validateQquery = require('./middlewares/validateQquery');
 const validateRateFormat = require('./middlewares/validateRateFormat');
 const validateRate = require('./middlewares/validateRate');
+const validateDateQuery = require('./middlewares/validateDateQuery');
+const validateDateFormat = require('./middlewares/validateDateFormat');
+const validateQRD = require('./middlewares/validateQRD');
 const validateQandRate = require('./middlewares/validateQandRate');
+const validateQandDate = require('./middlewares/validateQandDate');
+const validateRateAndDate = require('./middlewares/validateRateAndDate');
 
 const app = express();
 app.use(express.json());
@@ -44,19 +49,25 @@ app.get('/talker', async (req, res) => {
 
 app.get('/talker/search',
   validationCredential,
-  validateQandRate,
+  validateQRD,
   validateQquery,
   validateRateFormat,
   validateRate,
+  validateDateFormat,
+  validateDateQuery,
+  validateQandRate,
+  validateQandDate,
+  validateRateAndDate,
   async (req, res) => {
-    const { q, rate } = req.query;
+    const { q, rate, date } = req.query;
     const talkers = await readTalkers();
 
-    if (q && rate) {
+    if (q && rate && date) {
       const filterByRate = talkers.filter((talker) => talker.talk.rate === Number(rate));
       const filterByQ = filterByRate.filter((talker) => talker.name.includes(q));
-      if (filterByQ.length > 0) {
-        res.status(200).json(filterByQ);
+      const filterByDate = filterByQ.filter((talker) => talker.talk.watchedAt === date);
+      if (filterByDate.length > 0) {
+        res.status(200).json(filterByDate);
       }
     }
   });
