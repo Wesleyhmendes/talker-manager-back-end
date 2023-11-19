@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
@@ -11,15 +12,9 @@ const validationName = require('./middlewares/validationName');
 const validationTalk = require('./middlewares/validationTalk');
 const validationWatchedAt = require('./middlewares/validationWatchedAt');
 const validatationRate = require('./middlewares/validationRate');
-const validateQquery = require('./middlewares/validateQquery');
 const validateRateFormat = require('./middlewares/validateRateFormat');
-const validateRate = require('./middlewares/validateRate');
-const validateDateQuery = require('./middlewares/validateDateQuery');
 const validateDateFormat = require('./middlewares/validateDateFormat');
 const validateQRD = require('./middlewares/validateQRD');
-const validateQandRate = require('./middlewares/validateQandRate');
-const validateQandDate = require('./middlewares/validateQandDate');
-const validateRateAndDate = require('./middlewares/validateRateAndDate');
 const validateRateBodyFormat = require('./middlewares/validateRateBodyFormat');
 const validateRateBodyExist = require('./middlewares/validateRateBodyExist');
 
@@ -52,46 +47,28 @@ app.get('/talker', async (req, res) => {
 app.get('/talker/search',
   validationCredential,
   validateQRD,
-  validateQquery,
   validateRateFormat,
-  validateRate,
   validateDateFormat,
-  validateDateQuery,
-  validateQandRate,
-  validateQandDate,
-  validateRateAndDate,
   async (req, res) => {
     const { q, rate, date } = req.query;
     const talkers = await readTalkers();
+    let filterBy = talkers;
 
-    if (q && rate && date) {
-      const filterByRate = talkers.filter((talker) => talker.talk.rate === Number(rate));
-      const filterByQ = filterByRate.filter((talker) => talker.name.includes(q));
-      const filterByDate = filterByQ.filter((talker) => talker.talk.watchedAt === date);
-      if (filterByDate.length > 0) {
-        res.status(200).json(filterByDate);
-      }
+    if (rate) {
+      filterBy = filterBy.filter((talker) => talker.talk.rate === Number(rate));
     }
+    if (date) {
+      filterBy = filterBy.filter((talker) => talker.talk.watchedAt === date);
+    }
+    if (q) {
+      filterBy = filterBy.filter((talker) => talker.name.includes(q));
+    }
+    return res.status(200).json(filterBy);
   });
-
-app.get('/talker/:id', async (req, res) => {
-  try {
-    const talkers = await readTalkers();
-    const { id } = req.params;
-
-    const talkerById = talkers.find((talker) => talker.id === Number(id));
-    if (!talkerById) {
-      res.status(404).send({ message: 'Pessoa palestrante não encontrada' });
-    }
-    return res.status(200).json(talkerById);
-  } catch (err) {
-    res.status(404).send({ message: 'Pessoa palestrante não encontrada' });
-  }
-});
 
 app.post('/login', validateEmail, validatePassword, async (req, res) => {
   const token = getToken();
-  res.status(200).json({ token });
+  return res.status(200).json({ token });
 });
 
 async function addTalker(name, age, talk) {
@@ -120,9 +97,45 @@ app.post('/talker',
   async (req, res) => {
     const { name, age, talk } = req.body;
     const { addNewTalker, newObject } = await addTalker(name, age, talk);
-    fs.writeFile(talkerPath, addNewTalker);
+    await fs.writeFile(talkerPath, addNewTalker);
     return res.status(201).json(newObject);
   });
+
+app.patch('/talker/rate/:id',
+  validationCredential,
+  validateRateBodyExist,
+  validateRateBodyFormat,
+  async (req, res) => {
+    const { id } = req.params;
+    const { rate } = req.body;
+    const talkers = await readTalkers();
+
+    const oldTalkers = talkers.filter((talker) => talker.id !== Number(id));
+    const updateTalker = talkers.find((talker) => talker.id === Number(id));
+    updateTalker.talk.rate = rate;
+
+    if (oldTalkers && updateTalker) {
+      const insertNewTalker = JSON.stringify([...oldTalkers, updateTalker]);
+      await fs.writeFile(talkerPath, insertNewTalker);
+    }
+
+    return res.status(204).end();
+  });
+
+app.get('/talker/:id', async (req, res) => {
+  try {
+    const talkers = await readTalkers();
+    const { id } = req.params;
+
+    const talkerById = talkers.find((talker) => talker.id === Number(id));
+    if (!talkerById) {
+      res.status(404).send({ message: 'Pessoa palestrante não encontrada' });
+    }
+    return res.status(200).json(talkerById);
+  } catch (err) {
+    res.status(404).send({ message: 'Pessoa palestrante não encontrada' });
+  }
+});
 
 app.put('/talker/:id',
   validationCredential,
@@ -163,24 +176,3 @@ app.delete('/talker/:id', validationCredential, async (req, res) => {
 
   res.status(204).end();
 });
-
-app.patch('/talker/rate/:id',
-  validationCredential,
-  validateRateBodyExist,
-  validateRateBodyFormat,
-  async (req, res) => {
-    const { id } = req.params;
-    const { rate } = req.body;
-    const talkers = await readTalkers();
-
-    const oldTalkers = talkers.filter((talker) => talker.id !== Number(id));
-    const updateTalker = talkers.find((talker) => talker.id === Number(id));
-    updateTalker.talk.rate = rate;
-    
-    if (oldTalkers && updateTalker) {
-      const insertNewTalker = JSON.stringify([...oldTalkers, updateTalker]);
-      await fs.writeFile(talkerPath, insertNewTalker);
-    }
-
-    return res.status(204).end();
-  });

@@ -5,7 +5,7 @@ module.exports = async (req, res, next) => {
   const talkers = await readTalkers();
   if (q && !rate && !date) {
     const filteredTalkers = talkers.filter((talker) => talker.name.includes(q));
-    if (filteredTalkers) {
+    if (filteredTalkers.length) {
       return res.status(200).json(filteredTalkers);
     }
     return res.status(200).json([]);

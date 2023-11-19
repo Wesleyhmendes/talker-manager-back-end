@@ -5,10 +5,10 @@ module.exports = async (req, res, next) => {
   const talkers = await readTalkers();
 
   if (q && rate && !date) {
-    const filterByQ = talkers.filter((talker) => talker.name.includes(q));
-    const filterByQAndRate = filterByQ.filter((talker) => talker.talk.rate === Number(rate));
-    if (filterByQAndRate) {
-      return res.status(200).json(filterByQAndRate);
+    const filterByQ = talkers
+      .filter((talker) => talker.name.includes(q) && talker.talk.rate === Number(rate));
+    if (filterByQ.length > 0) {
+      return res.status(200).json(filterByQ);
     }
   }
   next();
